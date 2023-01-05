@@ -31,6 +31,10 @@ export class UsersService {
     return this.userModel.findOne({ user: user });
   }
 
+  async findUserByEmail(email: String): Promise<User> {
+    return this.userModel.findOne({ email: email });
+  }
+
   async findUserEmailHash(emailStateHash: String): Promise<User> {
     return this.userModel.findOne({ emailStateHash: emailStateHash });
   }
@@ -40,7 +44,7 @@ export class UsersService {
     return createdUser.save();
   }
 
-  async verifyMail(user: User): Promise<void> {
+  async mailVerify(user: User): Promise<void> {
     await transporter.sendMail({
       from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
       to: user.email, // list of receivers
@@ -48,6 +52,18 @@ export class UsersService {
       html: `
         <p><b>Hola ${user.name} Clickea el siguiente enlace para validar tu email</b></p>
         <a href="http://localhost:4000/api/user/confirm/${user.emailStateHash}">Verificar Email</a>
+      `,
+    });
+  }
+
+  async recoverPass(user: User): Promise<void> {
+    await transporter.sendMail({
+      from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
+      to: user.email, // list of receivers
+      subject: "Recuperación de contraseña", // Subject line
+      html: `
+        <p><b>Clickea el siguiente enlace para reestablecer tu contraseña</b></p>
+        <a href="http://localhost:3000/recoverpass-enterpass/${user.user}">Reestablecer contraseña</a>
       `,
     });
   }

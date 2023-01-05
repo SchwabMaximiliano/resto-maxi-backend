@@ -9,6 +9,11 @@ import * as crypto from 'crypto';
 export class UserController {
   constructor(private readonly UserService: UsersService) {}
 
+  @Get("/publicKey")
+  publicKey(): string {
+    return this.UserService.getPublicKey();
+  }
+
   @Post("/login")
   async login(
     @Res() res: Response,
@@ -56,9 +61,9 @@ export class UserController {
     const hash = await bcrypt.hash(user.password, salt);
     const userHash = { ...user, password: hash };
     //save new user
-    const data = await this.UserService.saveUser(userHash);
-    if (data) {
-      await this.UserService.verifyMail(user);
+    const success = await this.UserService.saveUser(userHash);
+    if (success) {
+      await this.UserService.mailVerify(user);
       return res.status(HttpStatus.CREATED).json();
     }
     return res.status(HttpStatus.BAD_REQUEST).json();
@@ -76,8 +81,24 @@ export class UserController {
     return res.redirect('http://localhost:3000/email-error');
   }
 
-  @Get("/publicKey")
-  publicKey(): string {
-    return this.UserService.getPublicKey();
+  @Post("/recover-pass")
+  async recovery(@Res() res: any, @Body() user: User): Promise<void> {
+    const userData = await this.UserService.findUserByEmail(user.email);
+    await this.UserService.recoverPass(userData);   
+  }
+
+  @Post("/update-pass")
+  async updatePass(@Res() res: any, @Body() user: User): Promise<void> {
+    //apply hash
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(user.password, salt);
+    //update user
+    const userData = await this.UserService.findUser(user.user);
+    userData.password = hash;
+    const success = await this.UserService.saveUser(userData);
+    if (success) {
+      return res.status(HttpStatus.OK).json();
+    }
+    return res.status(HttpStatus.BAD_REQUEST).json();
   }
 }
