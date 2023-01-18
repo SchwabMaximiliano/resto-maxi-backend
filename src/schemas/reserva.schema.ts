@@ -8,7 +8,7 @@ export class Reserva {
   @Prop()
   userId: string
   @Prop()
-  personas: string
+  personas: number
   @Prop()
   dia: string
   @Prop()

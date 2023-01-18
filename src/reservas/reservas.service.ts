@@ -15,6 +15,16 @@ export class ReservasService {
     return await this.reservaModel.find().exec()
   }
 
+  async findReserva(reserva: Reserva): Promise<Reserva[]> {
+    return await this.reservaModel
+      .find({
+        date: reserva.date,
+        hora: reserva.hora,
+        personas: reserva.personas,
+      })
+      .exec()
+  }
+
   async findReservaUser(userId: string): Promise<Reserva[]> {
     return await this.reservaModel.find({ userId: userId })
   }

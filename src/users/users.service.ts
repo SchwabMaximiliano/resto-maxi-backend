@@ -13,13 +13,14 @@ export class UsersService {
 
   getPublicKey(): string {
     var base = process.env.PWD
-    const publicKey = fs.readFileSync(base + '/public_key.pem', 'utf8')
+    const publicKey = fs.readFileSync(base + '../../public_key.pem', 'utf8')
+
     return publicKey
   }
 
   getPivateKey(): string {
     var base = process.env.PWD
-    const privateKey = fs.readFileSync(base + '/private_key.pem', 'utf8')
+    const privateKey = fs.readFileSync(base + '../../private_key.pem', 'utf8')
     return privateKey
   }
 
