@@ -1,0 +1,1 @@
+export const EVERY_180_MINUTES_BETWEEN_8PM_AND_11PM = '0 */180 20-23 * * *'

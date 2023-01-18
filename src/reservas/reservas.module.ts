@@ -7,14 +7,18 @@ import { DisponibilidadModule } from 'src/disponibilidades/disponibilidades.modu
 import { MesaModule } from 'src/mesas/mesas.module'
 import { HorarioModule } from 'src/horarios/horarios.module'
 import { DiaDisponibilidadModule } from 'src/diaDisponibilidades/diaDisponibilidades.module'
+import { ScheduleModule } from '@nestjs/schedule'
+import { UserModule } from 'src/users/users.module'
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: 'Reserva', schema: ReservaSchema }]),
+    ScheduleModule.forRoot(),
     DisponibilidadModule,
     MesaModule,
     HorarioModule,
     DiaDisponibilidadModule,
+    UserModule,
   ],
   controllers: [ReservasController],
   providers: [ReservasService],
