@@ -10,8 +10,6 @@ import {
 import { Response } from 'express'
 import { UsersService } from './users.service'
 import { User } from '../schemas/user.schema'
-import * as bcrypt from 'bcrypt'
-import * as crypto from 'crypto'
 
 @Controller('/api/user')
 export class UsersController {
@@ -27,37 +25,9 @@ export class UsersController {
     @Res() res: Response,
     @Body() encryptedData: User,
   ): Promise<Response> {
-    //set private key
-    const privateKeyFromFile = this.UserService.getPivateKey()
-    const rsaPrivateKey = {
-      key: privateKeyFromFile,
-      passphrase: '',
-      padding: crypto.constants.RSA_PKCS1_PADDING,
-    }
+    const userData = await this.UserService.findUser(encryptedData)
 
-    //decrypt
-    const decryptedUser = crypto
-      .privateDecrypt(rsaPrivateKey, Buffer.from(encryptedData.user, 'base64'))
-      .toString('utf8')
-
-    const decryptedPassword = crypto
-      .privateDecrypt(
-        rsaPrivateKey,
-        Buffer.from(encryptedData.password, 'base64'),
-      )
-      .toString('utf8')
-    //console.log(decryptedUser)
-    // console.log(decryptedPassword)
-
-    //find user
-    const userData = await this.UserService.findUser(decryptedUser)
-    //console.log(userData)
-    if (userData === null) return res.status(HttpStatus.UNAUTHORIZED).json()
-    //hash and compare passwords
-    const isMatch = await bcrypt.compare(decryptedPassword, userData.password)
-
-    //console.log(isMatch)
-    if (isMatch) {
+    if (userData !== null) {
       return res.status(HttpStatus.OK).json(userData)
     } else {
       return res.status(HttpStatus.UNAUTHORIZED).json()
@@ -66,17 +36,7 @@ export class UsersController {
 
   @Post('/register')
   async register(@Res() res: any, @Body() user: User): Promise<void> {
-    //apply hash
-    user.emailStateHash = crypto
-      .randomBytes(21)
-      .toString('base64')
-      .slice(0, 21)
-      .replace('/', '-')
-    const salt = await bcrypt.genSalt(10)
-    const hash = await bcrypt.hash(user.password, salt)
-    const userHash = { ...user, password: hash }
-    //save new user
-    const success = await this.UserService.saveUser(userHash)
+    const success = await this.UserService.registerUser(user)
     if (success) {
       await this.UserService.mailVerify(user)
       return res.status(HttpStatus.CREATED).json()
@@ -88,11 +48,9 @@ export class UsersController {
   async confirm(
     @Res() res: any,
     @Param('emailStateHash') emailStateHash: String,
-  ): Promise<void> {
+  ): Promise<User> {
     const user = await this.UserService.findUserEmailHash(emailStateHash)
     if (user) {
-      user.emailState = 'verified'
-      await this.UserService.saveUser(user)
       return res.redirect('http://localhost:3000/email-confirmed')
     }
     return res.redirect('http://localhost:3000/email-error')
@@ -106,13 +64,7 @@ export class UsersController {
 
   @Post('/update-pass')
   async updatePass(@Res() res: any, @Body() user: User): Promise<void> {
-    //apply hash
-    const salt = await bcrypt.genSalt(10)
-    const hash = await bcrypt.hash(user.password, salt)
-    //update user
-    const userData = await this.UserService.findUser(user.user)
-    userData.password = hash
-    const success = await this.UserService.saveUser(userData)
+    const success = await this.UserService.saveUser(user)
     if (success) {
       return res.status(HttpStatus.OK).json()
     }

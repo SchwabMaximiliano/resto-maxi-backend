@@ -36,4 +36,8 @@ export class DiaDisponibilidadesService {
     })
     return diasNoDisponibles
   }
+
+  async deleteDia(diaDisponibilidad: DiaDisponibilidad): Promise<void> {
+    await this.diaDisponibilidadModel.deleteOne(diaDisponibilidad)
+  }
 }

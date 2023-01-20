@@ -26,6 +26,11 @@ export class DisponibilidadesService {
     return await createdDisponibilidad.save()
   }
 
+  async deleteDisponibilidad(disponibilidad: Disponibilidad): Promise<void> {
+    const borrado = await this.disponibilidadModel.deleteOne(disponibilidad)
+    console.log(borrado)
+  }
+
   async findHorariosNoDisponibles(reserva: any): Promise<string[]> {
     let horasNoDisponibles = []
 

@@ -9,6 +9,7 @@ import { HorarioModule } from 'src/horarios/horarios.module'
 import { DiaDisponibilidadModule } from 'src/diaDisponibilidades/diaDisponibilidades.module'
 import { ScheduleModule } from '@nestjs/schedule'
 import { UserModule } from 'src/users/users.module'
+import { UsersService } from 'src/users/users.service'
 
 @Module({
   imports: [
