@@ -58,7 +58,8 @@ export class UsersController {
 
   @Post('/update-pass')
   async updatePass(@Res() res: any, @Body() user: User): Promise<void> {
-    return (await this.UserService.saveUser(user))
+    console.log('controller updatepass')
+    return (await this.UserService.updateUser(user))
       ? res.status(HttpStatus.OK).json()
       : res.status(HttpStatus.BAD_REQUEST).json()
   }

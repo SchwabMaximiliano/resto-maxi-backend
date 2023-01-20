@@ -81,9 +81,19 @@ export class UsersService {
   async findUserByEmail(email: string): Promise<User> {
     return this.userModel.findOne({ email })
   }
+
   async saveUser(user: User): Promise<User> {
     const createdUser = new this.userModel(user)
     return createdUser.save()
+  }
+
+  async updateUser(user: User): Promise<User> {
+    const salt = await bcrypt.genSalt(10)
+    const passwordHash = await bcrypt.hash(user.password, salt)
+    return this.userModel.findOneAndUpdate(
+      { user: user.user },
+      { password: passwordHash },
+    )
   }
 
   async findUserEmailHash(emailStateHash: string): Promise<User> {
