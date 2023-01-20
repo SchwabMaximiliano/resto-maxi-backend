@@ -20,11 +20,9 @@ export class ReservasController {
 
   @Post('/nueva-reserva')
   async register(@Res() res: any, @Body() reserva: Reserva): Promise<void> {
-    const success = await this.ReservasService.saveReserva(reserva)
-    if (success) {
-      return res.status(HttpStatus.CREATED).json()
-    }
-    return res.status(HttpStatus.BAD_REQUEST).json()
+    return (await this.ReservasService.saveReserva(reserva))
+      ? res.status(HttpStatus.CREATED).json()
+      : res.status(HttpStatus.BAD_REQUEST).json()
   }
 
   @Get('/todas')

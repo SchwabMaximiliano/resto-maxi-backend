@@ -10,6 +10,7 @@ import {
 import { Response } from 'express'
 import { UsersService } from './users.service'
 import { User } from '../schemas/user.schema'
+import { EMAIL_CONFIRMED, EMAIL_ERROR } from 'src/config'
 
 @Controller('/api/user')
 export class UsersController {
@@ -26,48 +27,39 @@ export class UsersController {
     @Body() encryptedData: User,
   ): Promise<Response> {
     const userData = await this.UserService.findUser(encryptedData)
-
-    if (userData !== null) {
-      return res.status(HttpStatus.OK).json(userData)
-    } else {
-      return res.status(HttpStatus.UNAUTHORIZED).json()
-    }
+    return userData !== null
+      ? res.status(HttpStatus.OK).json(userData)
+      : res.status(HttpStatus.UNAUTHORIZED).json()
   }
 
   @Post('/register')
   async register(@Res() res: any, @Body() user: User): Promise<void> {
-    const success = await this.UserService.registerUser(user)
-    if (success) {
-      await this.UserService.mailVerify(user)
-      return res.status(HttpStatus.CREATED).json()
-    }
-    return res.status(HttpStatus.BAD_REQUEST).json()
+    return (await this.UserService.registerUser(user))
+      ? res.status(HttpStatus.CREATED).json()
+      : res.status(HttpStatus.BAD_REQUEST).json()
   }
 
   @Get('/confirm/:emailStateHash')
   async confirm(
     @Res() res: any,
-    @Param('emailStateHash') emailStateHash: String,
+    @Param('emailStateHash') emailStateHash: string,
   ): Promise<User> {
-    const user = await this.UserService.findUserEmailHash(emailStateHash)
-    if (user) {
-      return res.redirect('http://localhost:3000/email-confirmed')
-    }
-    return res.redirect('http://localhost:3000/email-error')
+    return (await this.UserService.findUserEmailHash(emailStateHash))
+      ? res.redirect(EMAIL_CONFIRMED)
+      : res.redirect(EMAIL_ERROR)
   }
 
   @Post('/recover-pass')
   async recovery(@Res() res: any, @Body() user: User): Promise<void> {
-    const userData = await this.UserService.findUserByEmail(user.email)
-    await this.UserService.recoverPass(userData)
+    return (await this.UserService.recoverPass(user))
+      ? res.status(HttpStatus.OK).json()
+      : res.status(HttpStatus.BAD_REQUEST).json()
   }
 
   @Post('/update-pass')
   async updatePass(@Res() res: any, @Body() user: User): Promise<void> {
-    const success = await this.UserService.saveUser(user)
-    if (success) {
-      return res.status(HttpStatus.OK).json()
-    }
-    return res.status(HttpStatus.BAD_REQUEST).json()
+    return (await this.UserService.saveUser(user))
+      ? res.status(HttpStatus.OK).json()
+      : res.status(HttpStatus.BAD_REQUEST).json()
   }
 }

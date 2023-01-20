@@ -8,6 +8,7 @@ dotenv.config()
 import * as fs from 'fs'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
+import { EMAIL_RECOVER, EMAIL_VERIFY } from 'src/config'
 
 @Injectable()
 export class UsersService {
@@ -15,13 +16,23 @@ export class UsersService {
 
   getPublicKey(): string {
     var base = process.env.PWD
-    const publicKey = fs.readFileSync(base + '../../public_key.pem', 'utf8')
+    let publicKey
+    try {
+      publicKey = fs.readFileSync(base + '../../public_key.pem', 'utf8')
+    } catch (error) {
+      publicKey = fs.readFileSync(base + '/public_key.pem', 'utf8')
+    }
     return publicKey
   }
 
   getPivateKey(): string {
     var base = process.env.PWD
-    const privateKey = fs.readFileSync(base + '../../private_key.pem', 'utf8')
+    let privateKey
+    try {
+      privateKey = fs.readFileSync(base + '../../private_key.pem', 'utf8')
+    } catch (error) {
+      privateKey = fs.readFileSync(base + '/private_key.pem', 'utf8')
+    }
     return privateKey
   }
 
@@ -55,32 +66,27 @@ export class UsersService {
       .toString('utf8')
 
     const userData = await this.userModel.findOne({ user: decryptedUser })
-
-    if (userData !== null) {
+    let isMatch = false
+    if (userData !== null)
       //hash and compare passwords
-      const isMatch = await bcrypt.compare(decryptedPassword, userData.password)
-      if (isMatch) {
-        return userData
-      } else {
-        return null
-      }
-    }
-    return userData
+      isMatch = await bcrypt.compare(decryptedPassword, userData.password)
+
+    return isMatch ? userData : null
   }
 
   async findUserbyId(id: ObjectId): Promise<User> {
     return this.userModel.findById(id)
   }
 
-  async findUserByEmail(email: String): Promise<User> {
-    return this.userModel.findOne({ email: email })
+  async findUserByEmail(email: string): Promise<User> {
+    return this.userModel.findOne({ email })
   }
   async saveUser(user: User): Promise<User> {
     const createdUser = new this.userModel(user)
     return createdUser.save()
   }
 
-  async findUserEmailHash(emailStateHash: String): Promise<User> {
+  async findUserEmailHash(emailStateHash: string): Promise<User> {
     const user = await this.userModel.findOne({ emailStateHash })
     if (user) {
       user.emailState = 'verified'
@@ -100,7 +106,9 @@ export class UsersService {
     const hash = await bcrypt.hash(user.password, salt)
     const userHash = { ...user, password: hash }
     //save new user
-    return await this.saveUser(userHash)
+    const success = await this.saveUser(userHash)
+    success && (await this.mailVerify(user))
+    return success
   }
 
   async mailVerify(user: User): Promise<void> {
@@ -108,22 +116,24 @@ export class UsersService {
       from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
       to: user.email, // list of receivers
       subject: 'Verifica tu email ✔', // Subject line
-      html: `
-        <p><b>Hola ${user.name} Clickea el siguiente enlace para validar tu email</b></p>
-        <a href="http://localhost:4000/api/user/confirm/${user.emailStateHash}">Verificar Email</a>
-      `,
+      html: EMAIL_VERIFY.replace('{name}', user.name).replace(
+        '{emailStateHash}',
+        user.emailStateHash,
+      ),
     })
   }
 
-  async recoverPass(user: User): Promise<void> {
-    await transporter.sendMail({
-      from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
-      to: user.email, // list of receivers
-      subject: 'Recuperación de contraseña', // Subject line
-      html: `
-        <p><b>Clickea el siguiente enlace para reestablecer tu contraseña</b></p>
-        <a href="http://localhost:3000/recoverpass-enterpass/${user.user}">Reestablecer contraseña</a>
-      `,
-    })
+  async recoverPass(user: User): Promise<boolean> {
+    const userData = await this.findUserByEmail(user.email)
+    if (userData) {
+      await transporter.sendMail({
+        from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
+        to: userData.email, // list of receivers
+        subject: 'Recuperación de contraseña', // Subject line
+        html: EMAIL_RECOVER.replace('{user}', userData.user),
+      })
+      return true
+    }
+    return false
   }
 }

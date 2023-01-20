@@ -5,7 +5,10 @@ import { Reserva, ReservaDocument } from '../schemas/reserva.schema'
 import * as dotenv from 'dotenv'
 import { Cron, CronExpression } from '@nestjs/schedule'
 dotenv.config()
-import { EVERY_180_MINUTES_BETWEEN_8PM_AND_11PM } from 'src/config'
+import {
+  EMAIL_REMINDER,
+  EVERY_90_MINUTES_BETWEEN_8PM_AND_11PM,
+} from 'src/config'
 import { transporter } from 'src/helper/mailer'
 import { DisponibilidadesService } from '../disponibilidades/disponibilidades.service'
 import { MesasService } from '../mesas/mesas.service'
@@ -52,7 +55,6 @@ export class ReservasService {
     //guardo la reserva
     const createdReserva = new this.reservaModel(reserva)
     const success = await createdReserva.save()
-
     // actualizamos disponibilidad de horarios
     if (reserva.active === true) {
       const cantidad_mesas = await this.MesasService.cantidadMesas(
@@ -72,7 +74,6 @@ export class ReservasService {
           personas: reserva.personas,
         })
       }
-
       // actualizamos disponibilidad de dias
       const cantidad_horarios = (await this.HorariosService.findAll()).length
       const horarios_no_disponibles = (
@@ -94,6 +95,7 @@ export class ReservasService {
 
   // verifico las reservas que dejan de estar vigentes
   // @Cron(CronExpression.EVERY_5_SECONDS)
+  @Cron(EVERY_90_MINUTES_BETWEEN_8PM_AND_11PM)
   async updateActive() {
     /*
     //para testear sobre algun dia en particular
@@ -116,7 +118,7 @@ export class ReservasService {
     // buscamos las reservas del dia y la fecha
     actualDate.setHours(0, 0, 0, 0)
     const reservas = await this.findByDateAndHour(actualDate, hora)
-
+    // actualizamos el estado de las reservas
     reservas?.map(async (reserva) => {
       reserva.active = false
       await this.saveReserva(reserva)
@@ -137,24 +139,18 @@ export class ReservasService {
     // seteo la fecha actual en 0 hs y le sumamos 2 dias
     const date = new Date(new Date().setHours(0, 0, 0, 0))
     date.setDate(date.getDate() + 2)
-
     // buscamos las reservas de esa fecha y obtenemos los datos del usuario
     const reservas = await this.reservaModel.find({ date }).populate('userId')
-
     // enviamos los mails de recordatorio a los respectivos usuarios
     reservas?.map(async (reserva) => {
       await transporter.sendMail({
         from: `"Resto Maxi 👻" <${process.env.MAILER_USER}>`, // sender address
         to: reserva.userId.email, // list of receivers
         subject: 'Recordatorio de reserva', // Subject line
-        html: `
-          <p><b>Hola ${reserva.userId.name} Te recordamos que tienes la siguiente reserva en nuestro resto</b></p>
-          <div className='select-container bg-white'>
-			      <p><b>Dia: </b> ${reserva.dia}</p>
-			      <p><b>Hora: </b> ${reserva.hora}</p>
-			      <p><b>Cantidad de personas: </b> ${reserva.personas}</p>
-		      </div>
-        `,
+        html: EMAIL_REMINDER.replace('{name}', reserva.userId.name)
+          .replace('{dia}', reserva.dia)
+          .replace('{hora}', reserva.hora)
+          .replace('{personas}', reserva.personas.toString()),
       })
     })
   }
