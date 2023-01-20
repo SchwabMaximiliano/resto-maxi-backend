@@ -44,6 +44,7 @@ $ npm run start:dev
 # production mode
 $ npm run start:prod
 ```
+
 ## Settings
 
 ```bash
@@ -51,4 +52,5 @@ $ npm run start:prod
 MAILER_HOST='smtp.example.com'
 MAILER_USER='mail@example.com'
 MAILER_PASS='passexample'
+DB_URI='mongodb://localhost/nest'
 ```
