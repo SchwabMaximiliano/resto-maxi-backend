@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Res,
-  HttpStatus,
-  Body,
-  Param,
-} from '@nestjs/common'
+import { Controller, Get, Post, Body, Param } from '@nestjs/common'
 import { ReservasService } from './reservas.service'
 import { Reserva } from '../schemas/reserva.schema'
 import { DisponibilidadesService } from '../disponibilidades/disponibilidades.service'
@@ -19,10 +11,8 @@ export class ReservasController {
   ) {}
 
   @Post('/nueva-reserva')
-  async register(@Res() res: any, @Body() reserva: Reserva): Promise<void> {
-    return (await this.ReservasService.saveReserva(reserva))
-      ? res.status(HttpStatus.CREATED).json()
-      : res.status(HttpStatus.BAD_REQUEST).json()
+  async register(@Body() reserva: Reserva): Promise<any> {
+    return await this.ReservasService.saveReserva(reserva)
   }
 
   @Get('/todas')

@@ -1,5 +1,5 @@
 import { Model, ObjectId } from 'mongoose'
-import { Injectable } from '@nestjs/common'
+import { HttpStatus, Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Reserva, ReservaDocument } from '../schemas/reserva.schema'
 import * as dotenv from 'dotenv'
@@ -14,6 +14,7 @@ import { DisponibilidadesService } from '../disponibilidades/disponibilidades.se
 import { MesasService } from '../mesas/mesas.service'
 import { HorariosService } from 'src/horarios/horarios.service'
 import { DiaDisponibilidadesService } from 'src/diaDisponibilidades/diaDisponibilidades.service'
+import { response } from 'express'
 
 @Injectable()
 export class ReservasService {
@@ -51,7 +52,7 @@ export class ReservasService {
     return await this.reservaModel.find({ date, hora }).exec()
   }
 
-  async saveReserva(reserva: Reserva): Promise<Reserva> {
+  async saveReserva(reserva: Reserva): Promise<any> {
     //guardo la reserva
     const createdReserva = new this.reservaModel(reserva)
     const success = await createdReserva.save()
@@ -91,6 +92,8 @@ export class ReservasService {
       }
     }
     return success
+      ? response.status(HttpStatus.CREATED)
+      : response.status(HttpStatus.BAD_REQUEST)
   }
 
   // verifico las reservas que dejan de estar vigentes

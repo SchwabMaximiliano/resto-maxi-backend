@@ -1,16 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Res,
-  HttpStatus,
-  Body,
-  Param,
-} from '@nestjs/common'
-import { Response } from 'express'
+import { Controller, Get, Post, Body, Param } from '@nestjs/common'
 import { UsersService } from './users.service'
 import { User } from '../schemas/user.schema'
-import { EMAIL_CONFIRMED, EMAIL_ERROR } from 'src/config'
 
 @Controller('/api/user')
 export class UsersController {
@@ -22,45 +12,30 @@ export class UsersController {
   }
 
   @Post('/login')
-  async login(
-    @Res() res: Response,
-    @Body() encryptedData: User,
-  ): Promise<Response> {
-    const userData = await this.UserService.findUser(encryptedData)
-    return userData !== null
-      ? res.status(HttpStatus.OK).json(userData)
-      : res.status(HttpStatus.UNAUTHORIZED).json()
+  async login(@Body() encryptedData: User): Promise<any> {
+    return await this.UserService.findUser(encryptedData)
   }
 
   @Post('/register')
-  async register(@Res() res: any, @Body() user: User): Promise<void> {
-    return (await this.UserService.registerUser(user))
-      ? res.status(HttpStatus.CREATED).json()
-      : res.status(HttpStatus.BAD_REQUEST).json()
+  async register(@Body() user: User): Promise<any> {
+    return await this.UserService.registerUser(user)
   }
 
   @Get('/confirm/:emailStateHash')
   async confirm(
-    @Res() res: any,
     @Param('emailStateHash') emailStateHash: string,
   ): Promise<User> {
-    return (await this.UserService.findUserEmailHash(emailStateHash))
-      ? res.redirect(EMAIL_CONFIRMED)
-      : res.redirect(EMAIL_ERROR)
+    return await this.UserService.findUserEmailHash(emailStateHash)
   }
 
   @Post('/recover-pass')
-  async recovery(@Res() res: any, @Body() user: User): Promise<void> {
-    return (await this.UserService.recoverPass(user))
-      ? res.status(HttpStatus.OK).json()
-      : res.status(HttpStatus.BAD_REQUEST).json()
+  async recovery(@Body() user: User): Promise<any> {
+    return await this.UserService.recoverPass(user)
   }
 
   @Post('/update-pass')
-  async updatePass(@Res() res: any, @Body() user: User): Promise<void> {
+  async updatePass(@Body() user: User): Promise<void> {
     console.log('controller updatepass')
-    return (await this.UserService.updateUser(user))
-      ? res.status(HttpStatus.OK).json()
-      : res.status(HttpStatus.BAD_REQUEST).json()
+    return await this.UserService.updateUser(user)
   }
 }

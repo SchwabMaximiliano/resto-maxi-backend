@@ -1,5 +1,5 @@
 import { Model, ObjectId } from 'mongoose'
-import { Injectable } from '@nestjs/common'
+import { HttpStatus, Injectable } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { User, UserDocument } from '../schemas/user.schema'
 import { transporter } from '../helper/mailer'
@@ -9,6 +9,8 @@ import * as fs from 'fs'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
 import { EMAIL_RECOVER, EMAIL_VERIFY } from 'src/config'
+import { response } from 'express'
+import { EMAIL_CONFIRMED, EMAIL_ERROR } from 'src/config'
 
 @Injectable()
 export class UsersService {
@@ -71,7 +73,9 @@ export class UsersService {
       //hash and compare passwords
       isMatch = await bcrypt.compare(decryptedPassword, userData.password)
 
-    return isMatch ? userData : null
+    return isMatch
+      ? response.status(HttpStatus.OK).json(userData)
+      : response.status(HttpStatus.UNAUTHORIZED)
   }
 
   async findUserbyId(id: ObjectId): Promise<User> {
@@ -87,25 +91,29 @@ export class UsersService {
     return createdUser.save()
   }
 
-  async updateUser(user: User): Promise<User> {
+  async updateUser(user: User): Promise<any> {
     const salt = await bcrypt.genSalt(10)
     const passwordHash = await bcrypt.hash(user.password, salt)
     return this.userModel.findOneAndUpdate(
       { user: user.user },
       { password: passwordHash },
     )
+      ? response.status(HttpStatus.OK)
+      : response.status(HttpStatus.BAD_REQUEST)
   }
 
-  async findUserEmailHash(emailStateHash: string): Promise<User> {
+  async findUserEmailHash(emailStateHash: string): Promise<any> {
     const user = await this.userModel.findOne({ emailStateHash })
     if (user) {
       user.emailState = 'verified'
       await this.saveUser(user)
     }
     return user
+      ? response.redirect(EMAIL_CONFIRMED)
+      : response.redirect(EMAIL_ERROR)
   }
 
-  async registerUser(user: User): Promise<User> {
+  async registerUser(user: User): Promise<any> {
     //apply hash
     user.emailStateHash = crypto
       .randomBytes(21)
@@ -119,6 +127,8 @@ export class UsersService {
     const success = await this.saveUser(userHash)
     success && (await this.mailVerify(user))
     return success
+      ? response.status(HttpStatus.CREATED)
+      : response.status(HttpStatus.BAD_REQUEST)
   }
 
   async mailVerify(user: User): Promise<void> {
@@ -133,7 +143,7 @@ export class UsersService {
     })
   }
 
-  async recoverPass(user: User): Promise<boolean> {
+  async recoverPass(user: User): Promise<any> {
     const userData = await this.findUserByEmail(user.email)
     if (userData) {
       await transporter.sendMail({
@@ -142,8 +152,8 @@ export class UsersService {
         subject: 'Recuperación de contraseña', // Subject line
         html: EMAIL_RECOVER.replace('{user}', userData.user),
       })
-      return true
+      response.status(HttpStatus.OK)
     }
-    return false
+    response.status(HttpStatus.BAD_REQUEST)
   }
 }
